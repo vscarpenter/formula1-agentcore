@@ -163,44 +163,99 @@ check_cdk_deployment() {
         --stack-name "$STACK_NAME" \
         --region "$AWS_REGION" \
         --query 'Stacks[0].Outputs' \
-        --output json)
+        --output json 2>/dev/null || echo "null")
 
-    # Extract resource ARNs and names
-    F1_DATA_LAMBDA_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey | contains("F1DataFunction")) | .OutputValue' | head -1)
-    RACE_BRIEFING_LAMBDA_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey | contains("RaceBriefingFunction")) | .OutputValue' | head -1)
-    BEDROCK_ROLE_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey | contains("BedrockAgentRole")) | .OutputValue' | head -1)
-    PREFERENCES_TABLE=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey | contains("PreferencesTable")) | .OutputValue' | head -1)
+    # Try to extract resource ARNs from outputs (if they exist)
+    F1_DATA_LAMBDA_ARN=""
+    RACE_BRIEFING_LAMBDA_ARN=""
+    BEDROCK_ROLE_ARN=""
+    PREFERENCES_TABLE=""
 
-    # If outputs don't have keys, try to get resources directly
+    if [ "$STACK_OUTPUTS" != "null" ] && [ -n "$STACK_OUTPUTS" ]; then
+        F1_DATA_LAMBDA_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[]? | select(.OutputKey? | contains("F1DataFunction"))? | .OutputValue' 2>/dev/null | head -1)
+        RACE_BRIEFING_LAMBDA_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[]? | select(.OutputKey? | contains("RaceBriefingFunction"))? | .OutputValue' 2>/dev/null | head -1)
+        BEDROCK_ROLE_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[]? | select(.OutputKey? | contains("BedrockAgentRole"))? | .OutputValue' 2>/dev/null | head -1)
+        PREFERENCES_TABLE=$(echo "$STACK_OUTPUTS" | jq -r '.[]? | select(.OutputKey? | contains("PreferencesTable"))? | .OutputValue' 2>/dev/null | head -1)
+    fi
+
+    # If outputs are not available, get resources directly from stack
     if [ -z "$F1_DATA_LAMBDA_ARN" ] || [ "$F1_DATA_LAMBDA_ARN" = "null" ]; then
-        print_info "Retrieving resources from stack..."
+        print_warning "Stack outputs not found, retrieving resources directly..."
+        print_info "Note: Redeploy the stack to add outputs for faster lookup next time"
+
         RESOURCES=$(aws cloudformation describe-stack-resources \
             --stack-name "$STACK_NAME" \
             --region "$AWS_REGION" \
-            --output json)
+            --output json 2>/dev/null)
 
-        F1_DATA_LAMBDA_ARN=$(echo "$RESOURCES" | jq -r '.StackResources[] | select(.LogicalResourceId == "F1DataFunction") | .PhysicalResourceId')
-        RACE_BRIEFING_LAMBDA_ARN=$(echo "$RESOURCES" | jq -r '.StackResources[] | select(.LogicalResourceId == "RaceBriefingFunction") | .PhysicalResourceId')
-        BEDROCK_ROLE_ARN=$(echo "$RESOURCES" | jq -r '.StackResources[] | select(.LogicalResourceId == "BedrockAgentRole") | .PhysicalResourceId')
-        PREFERENCES_TABLE=$(echo "$RESOURCES" | jq -r '.StackResources[] | select(.LogicalResourceId == "PreferencesTable") | .PhysicalResourceId')
-
-        # Get full ARNs for Lambda functions
-        if [[ ! "$F1_DATA_LAMBDA_ARN" =~ ^arn: ]]; then
-            F1_DATA_LAMBDA_ARN=$(aws lambda get-function --function-name "$F1_DATA_LAMBDA_ARN" --region "$AWS_REGION" --query 'Configuration.FunctionArn' --output text)
+        if [ -z "$RESOURCES" ]; then
+            print_error "Unable to retrieve stack resources"
+            exit 1
         fi
-        if [[ ! "$RACE_BRIEFING_LAMBDA_ARN" =~ ^arn: ]]; then
-            RACE_BRIEFING_LAMBDA_ARN=$(aws lambda get-function --function-name "$RACE_BRIEFING_LAMBDA_ARN" --region "$AWS_REGION" --query 'Configuration.FunctionArn' --output text)
+
+        # Get resource physical IDs
+        F1_DATA_LAMBDA_NAME=$(echo "$RESOURCES" | jq -r '.StackResources[]? | select(.LogicalResourceId == "F1DataFunction")? | .PhysicalResourceId' 2>/dev/null)
+        RACE_BRIEFING_LAMBDA_NAME=$(echo "$RESOURCES" | jq -r '.StackResources[]? | select(.LogicalResourceId == "RaceBriefingFunction")? | .PhysicalResourceId' 2>/dev/null)
+        BEDROCK_ROLE_ARN=$(echo "$RESOURCES" | jq -r '.StackResources[]? | select(.LogicalResourceId == "BedrockAgentRole")? | .PhysicalResourceId' 2>/dev/null)
+        PREFERENCES_TABLE=$(echo "$RESOURCES" | jq -r '.StackResources[]? | select(.LogicalResourceId == "PreferencesTable")? | .PhysicalResourceId' 2>/dev/null)
+
+        # Get full ARNs for Lambda functions if we got valid names
+        if [ -n "$F1_DATA_LAMBDA_NAME" ] && [ "$F1_DATA_LAMBDA_NAME" != "null" ]; then
+            if [[ ! "$F1_DATA_LAMBDA_NAME" =~ ^arn: ]]; then
+                print_info "Getting ARN for F1 Data Lambda..."
+                F1_DATA_LAMBDA_ARN=$(aws lambda get-function \
+                    --function-name "$F1_DATA_LAMBDA_NAME" \
+                    --region "$AWS_REGION" \
+                    --query 'Configuration.FunctionArn' \
+                    --output text 2>/dev/null)
+            else
+                F1_DATA_LAMBDA_ARN="$F1_DATA_LAMBDA_NAME"
+            fi
+        fi
+
+        if [ -n "$RACE_BRIEFING_LAMBDA_NAME" ] && [ "$RACE_BRIEFING_LAMBDA_NAME" != "null" ]; then
+            if [[ ! "$RACE_BRIEFING_LAMBDA_NAME" =~ ^arn: ]]; then
+                print_info "Getting ARN for Race Briefing Lambda..."
+                RACE_BRIEFING_LAMBDA_ARN=$(aws lambda get-function \
+                    --function-name "$RACE_BRIEFING_LAMBDA_NAME" \
+                    --region "$AWS_REGION" \
+                    --query 'Configuration.FunctionArn' \
+                    --output text 2>/dev/null)
+            else
+                RACE_BRIEFING_LAMBDA_ARN="$RACE_BRIEFING_LAMBDA_NAME"
+            fi
         fi
     fi
 
-    print_success "F1 Data Lambda: $F1_DATA_LAMBDA_ARN"
-    print_success "Race Briefing Lambda: $RACE_BRIEFING_LAMBDA_ARN"
-    print_success "Bedrock Agent Role: $BEDROCK_ROLE_ARN"
-    print_success "Preferences Table: $PREFERENCES_TABLE"
+    # Display found resources
+    if [ -n "$F1_DATA_LAMBDA_ARN" ] && [ "$F1_DATA_LAMBDA_ARN" != "null" ]; then
+        print_success "F1 Data Lambda: $F1_DATA_LAMBDA_ARN"
+    else
+        print_error "F1 Data Lambda not found"
+    fi
+
+    if [ -n "$RACE_BRIEFING_LAMBDA_ARN" ] && [ "$RACE_BRIEFING_LAMBDA_ARN" != "null" ]; then
+        print_success "Race Briefing Lambda: $RACE_BRIEFING_LAMBDA_ARN"
+    else
+        print_error "Race Briefing Lambda not found"
+    fi
+
+    if [ -n "$BEDROCK_ROLE_ARN" ] && [ "$BEDROCK_ROLE_ARN" != "null" ]; then
+        print_success "Bedrock Agent Role: $BEDROCK_ROLE_ARN"
+    else
+        print_error "Bedrock Agent Role not found"
+    fi
+
+    if [ -n "$PREFERENCES_TABLE" ] && [ "$PREFERENCES_TABLE" != "null" ]; then
+        print_success "Preferences Table: $PREFERENCES_TABLE"
+    fi
 
     # Verify we have all required resources
-    if [ -z "$F1_DATA_LAMBDA_ARN" ] || [ -z "$RACE_BRIEFING_LAMBDA_ARN" ] || [ -z "$BEDROCK_ROLE_ARN" ]; then
+    if [ -z "$F1_DATA_LAMBDA_ARN" ] || [ "$F1_DATA_LAMBDA_ARN" = "null" ] || \
+       [ -z "$RACE_BRIEFING_LAMBDA_ARN" ] || [ "$RACE_BRIEFING_LAMBDA_ARN" = "null" ] || \
+       [ -z "$BEDROCK_ROLE_ARN" ] || [ "$BEDROCK_ROLE_ARN" = "null" ]; then
         print_error "Missing required resources from CDK stack"
+        print_info "Please ensure the CDK stack is properly deployed with all resources"
         exit 1
     fi
 }
