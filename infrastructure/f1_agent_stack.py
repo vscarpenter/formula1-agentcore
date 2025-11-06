@@ -10,6 +10,7 @@ This stack creates:
 
 from aws_cdk import (
     BundlingOptions,
+    CfnOutput,
     Duration,
     RemovalPolicy,
     Stack,
@@ -86,6 +87,47 @@ class F1AgentStack(Stack):
         self.f1_data_lambda = f1_data_lambda
         self.race_briefing_lambda = race_briefing_lambda
         self.agent_role = agent_role
+
+        # Export CloudFormation outputs for automation script
+        CfnOutput(
+            self,
+            "F1DataFunctionArn",
+            value=f1_data_lambda.function_arn,
+            description="ARN of the F1 Data Lambda function",
+            export_name=f"{Stack.of(self).stack_name}-F1DataFunctionArn",
+        )
+
+        CfnOutput(
+            self,
+            "RaceBriefingFunctionArn",
+            value=race_briefing_lambda.function_arn,
+            description="ARN of the Race Briefing Lambda function",
+            export_name=f"{Stack.of(self).stack_name}-RaceBriefingFunctionArn",
+        )
+
+        CfnOutput(
+            self,
+            "BedrockAgentRoleArn",
+            value=agent_role.role_arn,
+            description="ARN of the Bedrock Agent IAM role",
+            export_name=f"{Stack.of(self).stack_name}-BedrockAgentRoleArn",
+        )
+
+        CfnOutput(
+            self,
+            "PreferencesTableName",
+            value=preferences_table.table_name,
+            description="Name of the Preferences DynamoDB table",
+            export_name=f"{Stack.of(self).stack_name}-PreferencesTableName",
+        )
+
+        CfnOutput(
+            self,
+            "InteractionsTableName",
+            value=interactions_table.table_name,
+            description="Name of the Interactions DynamoDB table",
+            export_name=f"{Stack.of(self).stack_name}-InteractionsTableName",
+        )
 
     def create_preferences_table(self) -> dynamodb.Table:
         """Create DynamoDB table for user preferences."""
