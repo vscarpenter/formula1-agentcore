@@ -367,9 +367,11 @@ create_bedrock_agent() {
 create_action_groups() {
     print_header "Creating Action Groups"
 
-    # Read OpenAPI schemas
-    F1_DATA_SCHEMA=$(cat f1_data_actions_openapi.json)
-    RACE_BRIEFING_SCHEMA=$(cat race_briefing_actions_openapi.json)
+    # Verify schema files exist
+    if [ ! -f "f1_data_actions_openapi.json" ] || [ ! -f "race_briefing_actions_openapi.json" ]; then
+        print_error "Schema files not found. Please run export_openapi_schemas first."
+        exit 1
+    fi
 
     # Create F1 Data action group
     print_info "Creating F1 Data action group..."
@@ -378,16 +380,24 @@ create_action_groups() {
         --agent-version "DRAFT" \
         --action-group-name "f1_data_actions" \
         --action-group-executor lambda="$F1_DATA_LAMBDA_ARN" \
-        --api-schema payload="$F1_DATA_SCHEMA" \
+        --api-schema payload="file://f1_data_actions_openapi.json" \
         --description "Action group for F1 race data and schedules" \
         --region "$AWS_REGION" \
-        --output json)
+        --output json 2>&1)
 
-    F1_DATA_AG_ID=$(echo "$F1_DATA_AG_RESPONSE" | jq -r '.agentActionGroup.actionGroupId')
+    # Check if command succeeded
+    if echo "$F1_DATA_AG_RESPONSE" | grep -q "Error parsing parameter"; then
+        print_error "Failed to create F1 Data action group - parameter error"
+        echo "$F1_DATA_AG_RESPONSE"
+        exit 1
+    fi
+
+    F1_DATA_AG_ID=$(echo "$F1_DATA_AG_RESPONSE" | jq -r '.agentActionGroup.actionGroupId' 2>/dev/null)
 
     if [ -z "$F1_DATA_AG_ID" ] || [ "$F1_DATA_AG_ID" = "null" ]; then
         print_error "Failed to create F1 Data action group"
         echo "$F1_DATA_AG_RESPONSE"
+        exit 1
     else
         print_success "F1 Data action group created: $F1_DATA_AG_ID"
     fi
@@ -399,16 +409,24 @@ create_action_groups() {
         --agent-version "DRAFT" \
         --action-group-name "race_briefing_actions" \
         --action-group-executor lambda="$RACE_BRIEFING_LAMBDA_ARN" \
-        --api-schema payload="$RACE_BRIEFING_SCHEMA" \
+        --api-schema payload="file://race_briefing_actions_openapi.json" \
         --description "Action group for generating race briefings" \
         --region "$AWS_REGION" \
-        --output json)
+        --output json 2>&1)
 
-    RACE_BRIEFING_AG_ID=$(echo "$RACE_BRIEFING_AG_RESPONSE" | jq -r '.agentActionGroup.actionGroupId')
+    # Check if command succeeded
+    if echo "$RACE_BRIEFING_AG_RESPONSE" | grep -q "Error parsing parameter"; then
+        print_error "Failed to create Race Briefing action group - parameter error"
+        echo "$RACE_BRIEFING_AG_RESPONSE"
+        exit 1
+    fi
+
+    RACE_BRIEFING_AG_ID=$(echo "$RACE_BRIEFING_AG_RESPONSE" | jq -r '.agentActionGroup.actionGroupId' 2>/dev/null)
 
     if [ -z "$RACE_BRIEFING_AG_ID" ] || [ "$RACE_BRIEFING_AG_ID" = "null" ]; then
         print_error "Failed to create Race Briefing action group"
         echo "$RACE_BRIEFING_AG_RESPONSE"
+        exit 1
     else
         print_success "Race Briefing action group created: $RACE_BRIEFING_AG_ID"
     fi
