@@ -48,23 +48,39 @@ This project demonstrates AWS Bedrock AgentCore capabilities:
 ## Prerequisites
 
 - Python 3.11+
+- [uv](https://github.com/astral-sh/uv) (ultra-fast Python package installer)
 - AWS Account with Bedrock access
 - AWS CLI configured with appropriate credentials
 - Node.js 18+ (for AWS CDK)
 
 ## Setup
 
-### 1. Clone and Install Dependencies
+### 1. Install uv
 
 ```bash
-# Install Python dependencies
-pip install -e ".[dev,infra]"
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or via pip (if you have it)
+pip install uv
+```
+
+### 2. Clone and Install Dependencies
+
+```bash
+# Create virtual environment and install dependencies
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e ".[dev,infra]"
 
 # Install CDK (if not already installed)
 npm install -g aws-cdk
 ```
 
-### 2. Configure Environment
+### 3. Configure Environment
 
 Copy `.env.example` to `.env` and configure:
 
@@ -78,7 +94,7 @@ AWS_REGION=us-east-1
 AWS_PROFILE=default
 ```
 
-### 3. Deploy Infrastructure
+### 4. Deploy Infrastructure
 
 ```bash
 # Bootstrap CDK (first time only)
@@ -94,7 +110,7 @@ This creates:
 - Lambda functions for action groups
 - IAM roles for Bedrock Agent
 
-### 4. Create Bedrock Agent
+### 5. Create Bedrock Agent
 
 The Bedrock Agent must be created through AWS Console (CLI support coming):
 
@@ -117,7 +133,7 @@ The Bedrock Agent must be created through AWS Console (CLI support coming):
 6. Create alias: `production`
 7. Copy Agent ID and Alias ID to `.env`
 
-### 5. Export OpenAPI Schemas
+### 6. Export OpenAPI Schemas
 
 ```bash
 f1-agent export-schemas
@@ -297,6 +313,7 @@ User preferences stored in DynamoDB enable personalized responses:
 - [AWS Bedrock Agent Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html)
 - [OpenF1 API](https://openf1.org/)
 - [AWS CDK Python](https://docs.aws.amazon.com/cdk/v2/guide/home.html)
+- [uv - Ultra-fast Python Package Manager](https://github.com/astral-sh/uv) - See [UV_GUIDE.md](UV_GUIDE.md)
 
 ## License
 

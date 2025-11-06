@@ -26,9 +26,14 @@ pip-delete-this-directory.txt
 venv/
 env/
 ENV/
+.venv/
 .venv
 env.bak/
 venv.bak/
+
+# uv
+.uv/
+uv.lock
 
 # IDE and editors
 .vscode/

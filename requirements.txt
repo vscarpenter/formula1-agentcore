@@ -1,3 +1,11 @@
+# Requirements file for F1 Race Weekend Companion
+#
+# PREFERRED: Use uv for faster installs
+#   uv pip install -e ".[dev,infra]"
+#
+# This file exists for compatibility with tools that require requirements.txt
+# For full dependency management, see pyproject.toml
+
 # Core dependencies
 boto3>=1.34.0
 botocore>=1.34.0

@@ -5,8 +5,12 @@ Get up and running with the F1 Race Weekend Companion in 15 minutes.
 ## TL;DR
 
 ```bash
-# 1. Install dependencies
-pip install -e ".[dev,infra]"
+# 0. Install uv (if needed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 1. Create venv and install dependencies
+uv venv && source .venv/bin/activate
+uv pip install -e ".[dev,infra]"
 
 # 2. Set up environment
 cp .env.example .env
@@ -44,13 +48,22 @@ An intelligent F1 assistant that can:
    python3 --version  # Should be 3.11 or higher
    ```
 
-3. **AWS CLI configured**
+3. **uv** (ultra-fast Python package installer)
+   ```bash
+   # macOS/Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+
+   # Windows
+   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+4. **AWS CLI configured**
    ```bash
    aws configure
    # Enter your AWS credentials
    ```
 
-4. **Node.js 18+** (for CDK)
+5. **Node.js 18+** (for CDK)
    ```bash
    node --version  # Should be 18 or higher
    npm install -g aws-cdk
@@ -61,12 +74,12 @@ An intelligent F1 assistant that can:
 ### 1. Environment Setup (2 minutes)
 
 ```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Create virtual environment with uv (much faster than venv!)
+uv venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-# Install all dependencies
-pip install -e ".[dev,infra]"
+# Install all dependencies with uv (10-100x faster than pip!)
+uv pip install -e ".[dev,infra]"
 
 # Set up environment variables
 cp .env.example .env
@@ -243,6 +256,7 @@ f1-agent preferences
 - [AWS Bedrock Agents](https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html)
 - [OpenF1 API Docs](https://openf1.org/)
 - [CDK Python Guide](https://docs.aws.amazon.com/cdk/v2/guide/home.html)
+- [uv Package Manager Guide](UV_GUIDE.md) - 10-100x faster than pip!
 - [Full Deployment Guide](DEPLOYMENT.md)
 
 ## Project Structure

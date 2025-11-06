@@ -1,4 +1,4 @@
-.PHONY: help install test lint format clean deploy destroy lambda-layer
+.PHONY: help install test lint format clean deploy destroy lambda-layer uv-install
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -6,8 +6,11 @@ help:  ## Show this help message
 	@echo 'Available targets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install:  ## Install dependencies
-	pip install -e ".[dev,infra]"
+uv-install:  ## Install uv if not present
+	@command -v uv >/dev/null 2>&1 || { echo "Installing uv..."; curl -LsSf https://astral.sh/uv/install.sh | sh; }
+
+install: uv-install  ## Install dependencies with uv
+	uv pip install -e ".[dev,infra]"
 
 test:  ## Run tests with coverage
 	pytest --cov=src --cov=cli --cov-report=term-missing --cov-report=html
@@ -20,15 +23,17 @@ format:  ## Format code with black
 	black .
 	ruff check --fix .
 
-lambda-layer:  ## Build Lambda layer with dependencies
-	@echo "Creating Lambda layer..."
+lambda-layer:  ## Build Lambda layer with Linux-compatible dependencies
+	@echo "Creating Lambda layer for AWS Lambda (Linux)..."
 	@rm -rf lambda_layer
 	@mkdir -p lambda_layer/python/lib/python3.11/site-packages
-	pip install boto3 botocore requests pydantic python-dotenv \
-		-t lambda_layer/python/lib/python3.11/site-packages/ \
-		--upgrade
-	@echo "Layer created at: lambda_layer/"
+	python3.11 -m pip install --platform manylinux2014_x86_64 --only-binary=:all: \
+		boto3 botocore requests pydantic python-dotenv \
+		--target lambda_layer/python/lib/python3.11/site-packages/ \
+		--upgrade 2>&1 | grep -v "dependency conflicts" || true
+	@echo "✅ Lambda layer created with Linux binaries at: lambda_layer/"
 	@du -sh lambda_layer
+	@find lambda_layer -name "*.so" | head -3 | xargs -I {} sh -c 'echo "Sample binary: {}"; file {}'
 
 export-schemas:  ## Export OpenAPI schemas for agent creation
 	python -m cli.main export-schemas
@@ -59,8 +64,8 @@ calendar:  ## Show F1 calendar
 next-race:  ## Show next race
 	f1-agent next-race
 
-setup-dev:  ## Complete development setup
-	@echo "Setting up development environment..."
-	python3 -m venv venv
-	@echo "Virtual environment created. Activate with: source venv/bin/activate"
+setup-dev: uv-install  ## Complete development setup with uv
+	@echo "Setting up development environment with uv..."
+	uv venv
+	@echo "Virtual environment created. Activate with: source .venv/bin/activate"
 	@echo "Then run: make install && make lambda-layer"

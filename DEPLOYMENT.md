@@ -7,6 +7,7 @@ Step-by-step guide to deploy the F1 Race Weekend Companion to AWS.
 - [ ] AWS Account with administrator access
 - [ ] AWS CLI installed and configured
 - [ ] Python 3.11+ installed
+- [ ] uv installed (ultra-fast Python package installer)
 - [ ] Node.js 18+ installed (for CDK)
 - [ ] Bedrock model access enabled in your AWS account
 
@@ -24,15 +25,19 @@ Step-by-step guide to deploy the F1 Race Weekend Companion to AWS.
 ## Step 2: Set Up Local Environment
 
 ```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh  # macOS/Linux
+# Or: powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
+
 # Clone the repository (if not already done)
 cd formula1-agentcore
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Create virtual environment with uv
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-pip install -e ".[dev,infra]"
+uv pip install -e ".[dev,infra]"
 
 # Copy environment template
 cp .env.example .env
@@ -52,13 +57,13 @@ Lambda functions need their dependencies packaged as a layer:
 # Create layer directory
 mkdir -p lambda_layer/python/lib/python3.11/site-packages
 
-# Install dependencies to layer
-pip install \
+# Install dependencies to layer using uv (much faster!)
+uv pip install \
   boto3 \
   botocore \
   requests \
   pydantic \
-  -t lambda_layer/python/lib/python3.11/site-packages/
+  --target lambda_layer/python/lib/python3.11/site-packages/
 
 # Verify layer size (should be < 50MB)
 du -sh lambda_layer

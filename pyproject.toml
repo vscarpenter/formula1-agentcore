@@ -1,3 +1,13 @@
+# F1 Race Weekend Companion - Project Configuration
+#
+# This project uses uv for fast dependency management:
+#   uv venv                      # Create virtual environment
+#   uv pip install -e ".[dev]"   # Install with dev dependencies
+#   uv pip install -e ".[infra]" # Install with infrastructure tools
+#   uv pip install -e ".[dev,infra]"  # Install everything
+#
+# uv is 10-100x faster than pip: https://github.com/astral-sh/uv
+
 [build-system]
 requires = ["setuptools>=68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"

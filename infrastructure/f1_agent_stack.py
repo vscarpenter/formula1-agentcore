@@ -9,6 +9,7 @@ This stack creates:
 """
 
 from aws_cdk import (
+    BundlingOptions,
     Duration,
     RemovalPolicy,
     Stack,
@@ -18,6 +19,35 @@ from aws_cdk import (
     aws_logs as logs,
 )
 from constructs import Construct
+
+# Files and directories to exclude from Lambda packaging
+LAMBDA_EXCLUDE_PATTERNS = [
+    "cdk.out",
+    "cdk.out/*",
+    ".git",
+    ".git/*",
+    ".venv",
+    ".venv/*",
+    "venv",
+    "venv/*",
+    "__pycache__",
+    "*.pyc",
+    ".pytest_cache",
+    "tests",
+    "tests/*",
+    "*.egg-info",
+    ".coverage",
+    "htmlcov",
+    "infrastructure",
+    "infrastructure/*",
+    "lambda_layer",
+    "lambda_layer/*",
+    ".env",
+    ".env.local",
+    "*.md",
+    ".gitignore",
+    "Makefile",
+]
 
 
 class F1AgentStack(Stack):
@@ -93,14 +123,14 @@ class F1AgentStack(Stack):
         Create Lambda layer with Python dependencies.
 
         Note: In production, build this layer properly with:
-        pip install -r requirements.txt -t python/lib/python3.11/site-packages/
+        uv pip install --python python3.11 -r requirements.txt -t python/lib/python3.11/site-packages/
         """
         return lambda_.LayerVersion(
             self,
-            "DependenciesLayer",
+            "DependenciesLayerV3",  # V3 with Linux binaries
             code=lambda_.Code.from_asset("../lambda_layer"),
             compatible_runtimes=[lambda_.Runtime.PYTHON_3_11],
-            description="F1 Agent dependencies (requests, boto3, pydantic)",
+            description="F1 Agent dependencies (Python 3.11)",
         )
 
     def create_f1_data_lambda(
@@ -114,7 +144,10 @@ class F1AgentStack(Stack):
             "F1DataFunction",
             runtime=lambda_.Runtime.PYTHON_3_11,
             handler="src.actions.f1_data_actions.lambda_handler",
-            code=lambda_.Code.from_asset(".."),
+            code=lambda_.Code.from_asset(
+                "..",
+                exclude=LAMBDA_EXCLUDE_PATTERNS,
+            ),
             timeout=Duration.seconds(30),
             memory_size=512,
             layers=[layer],
@@ -141,7 +174,10 @@ class F1AgentStack(Stack):
             "RaceBriefingFunction",
             runtime=lambda_.Runtime.PYTHON_3_11,
             handler="src.actions.race_briefing_actions.lambda_handler",
-            code=lambda_.Code.from_asset(".."),
+            code=lambda_.Code.from_asset(
+                "..",
+                exclude=LAMBDA_EXCLUDE_PATTERNS,
+            ),
             timeout=Duration.seconds(60),
             memory_size=1024,
             layers=[layer],

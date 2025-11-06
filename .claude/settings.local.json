@@ -2,7 +2,29 @@
   "permissions": {
     "allow": [
       "Bash(mkdir:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(source:*)",
+      "Bash(uv pip list:*)",
+      "Bash(uv pip install:*)",
+      "Bash(python:*)",
+      "Bash(cdk --version:*)",
+      "Bash(cdk synth:*)",
+      "Bash(/dev/null)",
+      "Bash(aws cloudformation describe-stacks:*)",
+      "Bash(aws cloudformation describe-stack-resources:*)",
+      "Bash(aws dynamodb list-tables:*)",
+      "Bash(aws lambda list-functions:*)",
+      "Bash(make:*)",
+      "Bash(cdk deploy:*)",
+      "Bash(python3:*)",
+      "Bash(cat:*)",
+      "Bash(python3.11:*)",
+      "Bash(aws lambda invoke:*)",
+      "Bash(aws lambda get-function-configuration:*)",
+      "Bash(aws logs tail:*)",
+      "Bash(f1-agent calendar:*)",
+      "Bash(f1-agent export-schemas:*)",
+      "Bash(aws configure get:*)"
     ],
     "deny": [],
     "ask": []
