@@ -53,16 +53,36 @@ This project demonstrates AWS Bedrock AgentCore capabilities:
 - AWS CLI configured with appropriate credentials
 - Node.js 18+ (for AWS CDK)
 
-## Setup
+## Quick Setup
+
+**🚀 Automated Setup (Recommended)**
+
+We've created an automated setup script that handles everything for you:
+
+```bash
+./setup.sh
+```
+
+This single command will:
+- Set up Python environment
+- Build Lambda layer
+- Deploy CDK infrastructure
+- Create the Bedrock Agent automatically
+- Configure everything for you
+
+**For detailed step-by-step instructions, see [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)**
+
+---
+
+## Manual Setup
+
+If you prefer to set things up manually:
 
 ### 1. Install uv
 
 ```bash
 # macOS/Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 # Or via pip (if you have it)
 pip install uv
@@ -73,73 +93,48 @@ pip install uv
 ```bash
 # Create virtual environment and install dependencies
 uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate
 uv pip install -e ".[dev,infra]"
-
-# Install CDK (if not already installed)
-npm install -g aws-cdk
 ```
 
-### 3. Configure Environment
-
-Copy `.env.example` to `.env` and configure:
+### 3. Build Lambda Layer
 
 ```bash
-cp .env.example .env
-```
-
-Edit `.env` with your settings:
-```
-AWS_REGION=us-east-1
-AWS_PROFILE=default
+make lambda-layer
 ```
 
 ### 4. Deploy Infrastructure
 
 ```bash
-# Bootstrap CDK (first time only)
 cd infrastructure
-cdk bootstrap
-
-# Deploy the stack
+cdk bootstrap  # First time only
 cdk deploy
+cd ..
 ```
 
 This creates:
 - DynamoDB tables (preferences and interactions)
 - Lambda functions for action groups
 - IAM roles for Bedrock Agent
+- CloudFormation outputs for automation
 
-### 5. Create Bedrock Agent
+### 5. Create Bedrock Agent (Automated)
 
-The Bedrock Agent must be created through AWS Console (CLI support coming):
-
-1. Go to AWS Console → Bedrock → Agents
-2. Create new agent with name: `F1RaceWeekendCompanion`
-3. Configure foundation model: `Claude 3 Sonnet`
-4. Add agent instruction (see `src/agent/agent_config.py`)
-5. Create two action groups:
-
-   **Action Group 1: f1_data_actions**
-   - Name: `f1_data_actions`
-   - Lambda: Select the `F1DataFunction` from CDK stack
-   - API Schema: Use `f1_data_actions_openapi.json` (export with CLI)
-
-   **Action Group 2: race_briefing_actions**
-   - Name: `race_briefing_actions`
-   - Lambda: Select the `RaceBriefingFunction` from CDK stack
-   - API Schema: Use `race_briefing_actions_openapi.json`
-
-6. Create alias: `production`
-7. Copy Agent ID and Alias ID to `.env`
-
-### 6. Export OpenAPI Schemas
+Run the automated agent creation script:
 
 ```bash
-f1-agent export-schemas
+./create_bedrock_agent.sh
 ```
 
-Use the generated JSON files when creating action groups in AWS Console.
+This script automatically:
+- Exports OpenAPI schemas
+- Creates the Bedrock Agent
+- Configures action groups
+- Sets up Lambda permissions
+- Creates production alias
+- Updates your `.env` file
+
+**For troubleshooting and advanced options, see [AGENT_SETUP.md](AGENT_SETUP.md)**
 
 ## Usage
 

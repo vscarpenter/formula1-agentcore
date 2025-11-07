@@ -101,7 +101,6 @@ def get_f1_data_schema() -> dict[str, Any]:
                             "name": "year",
                             "in": "query",
                             "description": "Season year (defaults to current year)",
-                            "required": False,
                             "schema": {"type": "integer"},
                         }
                     ],
@@ -221,7 +220,6 @@ def get_race_briefing_schema() -> dict[str, Any]:
                             "name": "user_id",
                             "in": "query",
                             "description": "User ID for personalization",
-                            "required": False,
                             "schema": {"type": "string"},
                         },
                     ],
@@ -263,7 +261,6 @@ def get_race_briefing_schema() -> dict[str, Any]:
                             "name": "user_id",
                             "in": "query",
                             "description": "User ID for personalization",
-                            "required": False,
                             "schema": {"type": "string"},
                         },
                     ],
